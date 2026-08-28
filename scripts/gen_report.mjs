@@ -132,7 +132,8 @@ function genHTML(a, productName, brand, desc) {
   }).join('');
 
   const brandHtml = brand ? `
-<section style="background:#fff;border-radius:10px;padding:24px;margin:24px 0;box-shadow:0 2px 10px rgba(0,0,0,.06);border-left:5px solid #C7000B">
+<section style="background:#fff;border-radius:10px;padding:24px;margin:0 0 24px;box-shadow:0 3px 14px rgba(199,0,11,.12);border-left:5px solid #C7000B">
+<div style="display:inline-block;background:#C7000B;color:#fff;font-size:11px;padding:2px 10px;border-radius:10px;margin-bottom:10px">核心结论 · 置顶</div>
 <h2 style="font-size:20px;color:#C7000B;margin-bottom:12px">对「${brand}」的传播启发</h2>
 <p style="font-size:13px;color:#666;margin-bottom:14px">分析目标产品「${productName}」在 B 站的传播策略，提炼对 ${brand}${desc ? '（' + desc + '）' : ''} 可直接借鉴的打法：</p>
 <div style="background:#f9f9fb;border-radius:8px;padding:14px 18px;font-size:14px;color:#333;line-height:1.9">
@@ -179,6 +180,8 @@ tr:hover{background:#fff8f8}
 </div>
 <div class="container">
 
+${brandHtml}
+
 <div class="note"><b>数据说明：</b>通过B站搜索API采集「${productName}」相关视频，页面数据按播放量降序展示。主题归类基于标题关键词规则匹配（优先级：教程入门→安装部署→实战应用→测评对比→新闻资讯→其他），视频概要为基于标题的自动推断。<strong>报告不含任何个人信息。</strong></div>
 
 <h2 class="sec">核心数据总览</h2>
@@ -209,7 +212,6 @@ tr:hover{background:#fff8f8}
 <table id="vidTable"><thead><tr><th>播放</th><th>标题（点击跳转B站）</th><th>主题</th><th>作者</th><th>点赞</th><th>收藏</th><th>发布</th></tr></thead><tbody>${topRows}</tbody></table>
 </div>
 
-${brandHtml}
 
 <div class="footer">B站传播洞察 · 自动生成 ｜ 数据采集与分析方法见正文 ｜ 隐私说明：本页面与链接不含任何个人信息</div>
 </div>
