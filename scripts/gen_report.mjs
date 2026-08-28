@@ -131,17 +131,93 @@ function genHTML(a, productName, brand, desc) {
 <td style="font-size:12px">${v.author}</td><td>${fmt(v.like)}</td><td>${fmt(v.favorite)}</td><td style="font-size:12px;color:#888">${v.pubdate_str}</td></tr>`;
   }).join('');
 
+  // ---------- 深度分析指标 ----------
+  const ts = Object.entries(a.themes).sort((x, y) => y[1].play - x[1].play);
+  const top5Pct = (a.top50.slice(0, 5).reduce((s, v) => s + v.play, 0) / a.totalPlay * 100).toFixed(1);
+  const top10Pct = (a.top50.slice(0, 10).reduce((s, v) => s + v.play, 0) / a.totalPlay * 100).toFixed(1);
+  const topThemePct = a.count ? (ts[0]?.[1].count / a.count * 100).toFixed(0) : 0;
+  const maxMonth = a.months.length ? a.months.reduce((m, x) => x[1] > m[1] ? x : m, a.months[0]) : null;
+  const recent3C = a.months.slice(-3).reduce((s, m) => s + m[1], 0);
+  const recent3Pct = a.count ? (recent3C / a.count * 100).toFixed(0) : 0;
+  const authorConc = a.totalPlay ? (a.topAuthors.slice(0, 3).reduce((s, [, d]) => s + d.play, 0) / a.totalPlay * 100).toFixed(0) : 0;
+  const t20 = a.top50.slice(0, 20);
+  const qPct = (t20.filter(v => /[？?]/.test(v.title)).length / t20.length * 100).toFixed(0);
+  const numPct = (t20.filter(v => /\d/.test(v.title)).length / t20.length * 100).toFixed(0);
+  const emoPct = (t20.filter(v => /杀疯|白嫖|神器|颠覆|最强|最好|火|炸|裂|绝|牛|强|香|离谱|逆天|疯了|炸裂/.test(v.title)).length / t20.length * 100).toFixed(0);
+  const top3Names = ts.slice(0, 3).map(([n]) => n);
+  const weakThemes = ['测评对比', '实战应用', '安装部署', '新闻资讯'].filter(t => !top3Names.includes(t));
+  const headEffect = top5Pct > 50 ? '强头部驱动' : top5Pct > 30 ? '头部+长尾均衡' : '长尾分散';
+  const emoWords = a.topKeywords.filter(([k]) => ['免费','神器','颠覆','革命','最强','最好','首选','白嫖','国产'].includes(k)).map(([k]) => k);
+
+  // 内容矩阵
+  const matrixRows = ts.slice(0, 4).map(([t, d]) => {
+    const pct = (d.count / a.count * 100).toFixed(0);
+    const sug = {
+      '教程入门': `每期聚焦1个功能点，"X分钟搞懂${brand}XX"系列化产出`,
+      '安装部署': `覆盖Win/Mac/Linux三平台，解决新手第一道门槛`,
+      '实战应用': `真实项目全流程录屏，从需求到交付完整展示`,
+      '测评对比': `与竞品功能逐一PK+场景适配+明确推荐`,
+      '新闻资讯': `版本更新第一时间解读，抢首发流量`,
+      '其他': `隐藏玩法/使用技巧，"你不知道的XX"包装`,
+    }[t] || `分享${brand}在${t}场景的实战经验`;
+    return `<tr><td style="font-weight:600;color:#C7000B">${t}</td><td style="text-align:center">${d.count}条 (${pct}%)</td><td>${fmt(d.play)}</td><td style="font-size:12px;color:#444">${sug}</td></tr>`;
+  }).join('');
+
+  // 标题公式
+  const formulas = [];
+  if (qPct > 25) formulas.push(`<tr><td style="font-weight:600;color:#C7000B">疑问悬念式 (${qPct}%)</td><td style="font-size:12px">"为啥${brand}这么火？""${brand}到底好不好用？"</td><td style="font-size:12px;color:#666">引发好奇，适合认知期拉新</td></tr>`);
+  if (numPct > 25) formulas.push(`<tr><td style="font-weight:600;color:#C7000B">数字量化式 (${numPct}%)</td><td style="font-size:12px">"一个视频搞懂${brand}""${brand}让效率提升X倍"</td><td style="font-size:12px;color:#666">制造确定感，降低决策成本</td></tr>`);
+  if (emoPct > 25) formulas.push(`<tr><td style="font-weight:600;color:#C7000B">情感冲击式 (${emoPct}%)</td><td style="font-size:12px">"${brand}杀疯了""白嫖${brand}简直神器"</td><td style="font-size:12px;color:#666">激发情绪共鸣，适合破圈传播</td></tr>`);
+  if (!formulas.length) formulas.push(`<tr><td style="font-weight:600;color:#C7000B">直述式</td><td style="font-size:12px">"${brand}使用体验""${brand}功能介绍"</td><td style="font-size:12px;color:#666">平实直接，适合功能展示</td></tr>`);
+
   const brandHtml = brand ? `
-<section style="background:#fff;border-radius:10px;padding:24px;margin:0 0 24px;box-shadow:0 3px 14px rgba(199,0,11,.12);border-left:5px solid #C7000B">
+<section style="background:#fff;border-radius:10px;padding:28px;margin:0 0 24px;box-shadow:0 3px 14px rgba(199,0,11,.12);border-left:5px solid #C7000B">
 <div style="display:inline-block;background:#C7000B;color:#fff;font-size:11px;padding:2px 10px;border-radius:10px;margin-bottom:10px">核心结论 · 置顶</div>
-<h2 style="font-size:20px;color:#C7000B;margin-bottom:12px">对「${brand}」的传播启发</h2>
-<p style="font-size:13px;color:#666;margin-bottom:14px">分析目标产品「${productName}」在 B 站的传播策略，提炼对 ${brand}${desc ? '（' + desc + '）' : ''} 可直接借鉴的打法：</p>
-<div style="background:#f9f9fb;border-radius:8px;padding:14px 18px;font-size:14px;color:#333;line-height:1.9">
-<strong style="color:#C7000B">1. 内容主题布局：</strong>${productName}以"${Object.entries(a.themes).sort((x,y)=>y[1].play-x[1].play).map(([t,d])=>t).slice(0,3).join('、')}"为主要内容带。${brand}应优先补齐前三主题的内容缺口（当前TOP50占比估算：${Object.entries(a.themes).slice(0,3).map(([t,d])=>`${t}${(d.count/a.count*100).toFixed(0)}%`).join('、')}）。<br>
-<strong style="color:#C7000B">2. 高传播卖点句式：</strong>TOP 视频标题多用"${a.topKeywords.slice(0,4).map(([k])=>k).join('、')}"等词。建议标题模板：“${brand}”+ 场景痛点 + 量化收益。<br>
-<strong style="color:#C7000B">3. 头部UP主合作：</strong>${productName}传播力前${Math.min(3, a.topAuthors.length)}作者贡献主要播放量。建议优先商务合作粉丝50万+的科技/效率区UP主，用产品实景演示+可复制成果。部分合作方向：${a.topAuthors.slice(0,3).map(([n],i)=>`${i+1}「${n}」类博主`).join('、')}。<br>
-<strong style="color:#C7000B">4. 内容差异化机会：</strong>“测评对比”“实战应用”在${productName}的内容占比为${(a.themes['测评对比']?.count||0 + (a.themes['实战应用']?.count||0)) ? (((a.themes['测评对比']?.count||0)+(a.themes['实战应用']?.count||0))/a.count*100).toFixed(0)+'%' : '0%'}，是该产品相对薄弱的蓝海区域，${brand}可从此切入形成差异化。<br>
-<strong style="color:#C7000B">5. 情感化标题策略：</strong>${a.topKeywords.some(([k])=>['神器','颠覆','革命','免费','国产'].includes(k)) ? '该类词已在其标题中被验证有效，可借鉴。' : '该类词在其标题中较少使用，存在差异化空间，可先行测试。'}
+<h2 style="font-size:20px;color:#C7000B;margin-bottom:8px">对「${brand}」的传播启发</h2>
+<p style="font-size:13px;color:#666;margin-bottom:18px">基于「${productName}」B站 ${a.count} 条视频 / ${fmt(a.totalPlay)} 播放量的传播数据，为 ${brand}${desc ? '（' + desc + '）' : ''} 提炼差异化洞察与可执行打法。</p>
+
+<!-- 板块1：核心发现 -->
+<div style="background:linear-gradient(135deg,#fff5f5,#fff);border-radius:8px;padding:16px 18px;margin-bottom:16px;border:1px solid #ffe0e0">
+<h3 style="font-size:15px;color:#C7000B;margin-bottom:10px">一、核心发现</h3>
+<div style="font-size:13px;color:#333;line-height:2">
+<strong style="color:#C7000B">发现1 · 传播量级：</strong>${productName}在B站累计 ${fmt(a.totalPlay)} 播放 / ${a.count} 条视频 / 均播 ${fmt(a.avgPlay)}，属于${a.totalPlay > 50000000 ? '高热度' : a.totalPlay > 10000000 ? '中热度' : '早期'}传播阶段。${brand}对标此量级，首期目标可设为 ${fmt(Math.round(a.totalPlay * 0.3))} 播放（30%对标）。<br>
+<strong style="color:#C7000B">发现2 · 头部效应：</strong>TOP5视频贡献 ${top5Pct}% 播放量，TOP10贡献 ${top10Pct}%，呈<strong>${headEffect}</strong>格局。${top5Pct > 40 ? '意味着1-2条爆款视频决定整体传播量，需集中资源打造头部内容。' : '意味着内容分布较均匀，可批量产出中等播放内容。'}<br>
+<strong style="color:#C7000B">发现3 · 主题集中度：</strong>「${ts[0]?.[0]}」占 ${topThemePct}% 为绝对主力主题，${ts[1] ? '其次「' + ts[1][0] + '」' : ''}。用户核心关注点是<strong>${ts[0]?.[0]}</strong>，${brand}的内容策略应以此为锚点。<br>
+<strong style="color:#C7000B">发现4 · 发布节奏：</strong>${maxMonth ? maxMonth[0] + ' 为爆发月（' + maxMonth[1] + '条）' : ''}，近3个月占总量 ${recent3Pct}%。${recent3Pct > 50 ? '传播力在加速增长，产品处于上升期。' : recent3Pct > 25 ? '传播力稳定，有持续内容产出。' : '传播力趋于平缓，需新内容刺激。'}<br>
+<strong style="color:#C7000B">发现5 · UP主生态：</strong>TOP3作者贡献 ${authorConc}% 播放量，${authorConc > 50 ? '高度依赖少数头部UP主，需重点维护KOL关系。' : authorConc > 25 ? '头部UP主与中腰部共创，生态较健康。' : '内容来源分散，以素人/中腰部为主，可低成本铺量。'}
+</div>
+</div>
+
+<!-- 板块2：内容结构设计 -->
+<div style="background:#f9f9fb;border-radius:8px;padding:16px 18px;margin-bottom:16px">
+<h3 style="font-size:15px;color:#C7000B;margin-bottom:10px">二、内容结构设计（可执行内容矩阵）</h3>
+<p style="font-size:12px;color:#666;margin-bottom:8px">基于 ${productName} 主题分布，为 ${brand} 设计内容矩阵——每类内容给出具体选题方向与产出形式：</p>
+<table style="width:100%;border-collapse:collapse;font-size:13px">
+<thead><tr style="background:#f0f0f0"><th style="padding:6px 8px;text-align:left">主题</th><th style="padding:6px 8px;text-align:center">${productName}现状</th><th style="padding:6px 8px;text-align:left">播放量</th><th style="padding:6px 8px;text-align:left">${brand} 选题建议</th></tr></thead>
+<tbody>${matrixRows}</tbody></table>
+${weakThemes.length ? `<p style="font-size:12px;color:#C7000B;margin-top:10px"><strong>差异化蓝海：</strong>${productName}在「${weakThemes.join('、')}」主题上内容薄弱，${brand}可优先从此切入，避开红海竞争，建立先发优势。</p>` : ''}
+</div>
+
+<!-- 板块3：卖点文案设计 -->
+<div style="background:#f9f9fb;border-radius:8px;padding:16px 18px;margin-bottom:16px">
+<h3 style="font-size:15px;color:#C7000B;margin-bottom:10px">三、卖点文案设计（标题公式 + 实操模板）</h3>
+<p style="font-size:12px;color:#666;margin-bottom:8px">基于 TOP20 视频标题逆向工程，提炼高传播标题公式：</p>
+<table style="width:100%;border-collapse:collapse;font-size:13px">
+<thead><tr style="background:#f0f0f0"><th style="padding:6px 8px;text-align:left">标题公式</th><th style="padding:6px 8px;text-align:left">示例模板</th><th style="padding:6px 8px;text-align:left">适用场景</th></tr></thead>
+<tbody>${formulas.join('')}</tbody></table>
+<p style="font-size:12px;color:#666;margin-top:10px"><strong style="color:#C7000B">高频卖点词：</strong>${a.topKeywords.slice(0, 8).map(([k, c]) => `${k}(${c})`).join('、')}。${brand}标题可组合使用：产品名 + 痛点场景 + 卖点词 + 量化收益。</p>
+${emoWords.length ? `<p style="font-size:12px;color:#666"><strong style="color:#C7000B">已验证情感词：</strong>${emoWords.join('、')} 在 ${productName} 标题中被验证有效，${brand} 可直接借鉴测试。</p>` : `<p style="font-size:12px;color:#666"><strong style="color:#C7000B">情感词机会：</strong>${productName} 标题较少使用情感冲击词，${brand} 可用"神器/颠覆/白嫖"等词先行测试，形成文案差异化。</p>`}
+</div>
+
+<!-- 板块4：营销启示 -->
+<div style="background:linear-gradient(135deg,#fff5f5,#fff);border-radius:8px;padding:16px 18px;border:1px solid #ffe0e0">
+<h3 style="font-size:15px;color:#C7000B;margin-bottom:10px">四、营销启示（可落地执行计划）</h3>
+<div style="font-size:13px;color:#333;line-height:2">
+<strong style="color:#C7000B">Step 1 · 种草期（第1-2周）：</strong>产出 ${brand} 入门教程 3-5 条，标题用"${brand}X分钟搞懂XX功能"公式，目标UP主：中腰部科技区（粉丝5-20万），成本可控、铺基础认知。<br>
+<strong style="color:#C7000B">Step 2 · 破圈期（第3-4周）：</strong>合作 1-2 位头部UP主（参考 ${productName} 的 ${a.topAuthors.slice(0, 2).map(([n]) => '「' + n + '」').join('、')} 类型），用"${brand}杀疯了/白嫖神器"情感式标题，目标单条 50万+ 播放。<br>
+<strong style="color:#C7000B">Step 3 · 深度期（第5-8周）：</strong>产出 ${brand} 实战项目全流程视频 + 与竞品横评，切入${weakThemes.length ? '「' + weakThemes[0] + '」' : '差异化'}蓝海主题，建立内容深度护城河。<br>
+<strong style="color:#C7000B">Step 4 · 持续期（长期）：</strong>跟踪 ${brand} 版本更新第一时间解读（抢首发流量），月均产出 4-6 条，维持${maxMonth ? '类似 ' + maxMonth[0] + ' 的' : ''}爆发节奏。
+</div>
 </div>
 </section>` : '';
 
