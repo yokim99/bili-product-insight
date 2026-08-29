@@ -153,6 +153,43 @@ function genHTML(a, productName, brand, desc) {
   const headEffect = top5Pct > 50 ? '强头部驱动' : top5Pct > 30 ? '头部+长尾均衡' : '长尾分散';
   const emoWords = a.topKeywords.filter(([k]) => ['免费','神器','颠覆','革命','最强','最好','首选','白嫖','国产'].includes(k)).map(([k]) => k);
 
+  // ---------- TOP5 爆款拆解 ----------
+  const GENE_RULES = [
+    { key: '疑问钩子', re: /[？?]|为啥|为什么|怎么/, why: '从众心理+好奇缺口——"大家都看我也得看，看完还想知道答案"', tpl: '为啥${P}这么火？/ ${P}到底好不好用？' },
+    { key: '反常识冲击', re: /居然|竟然|杀疯|白嫖|颠覆|离谱|逆天|疯了/, why: '打破固有印象——"XX居然会白嫖"挑战用户已有认知，情绪共鸣拉满互动率', tpl: '${P}居然会让你白嫖？简直杀疯了' },
+    { key: '学习成本承诺', re: /一个视频|搞懂|X分钟|保姆|最简单|入门|一看就会/, why: '确定性承诺——明确告诉用户"看完这个就够了"，降低点击决策成本', tpl: '一个视频搞懂${P}！/ 这可能是最简单的一集' },
+    { key: '拟人化玩梗', re: /养虾|养|龙虾|吉祥物|表情包|梗/, why: '产品拟人化/昵称梗——把工具变成"宠物"，制造社区身份认同（懂梗=圈内人）', tpl: '如果你真想养虾，这可能是最简单的一集' },
+    { key: '数字悬念', re: /\d{3,}小时|\d{3,}天|神奇|不可思议|想不到|竟然发现/, why: '具体数字+未解悬念——大数字制造夸张感，悬念词逼用户点进去找答案', tpl: '我用${P}从10000小时监控中找到了神奇的一幕！' },
+  ];
+  const top5Cards = a.top50.slice(0, 5).map((v, i) => {
+    const likeRate = v.play ? (v.like / v.play * 100).toFixed(1) : '0';
+    const genes = GENE_RULES.filter(g => g.re.test(v.title));
+    const geneHtml = genes.length ? genes.map(g =>
+      `<div style="margin:6px 0"><span style="background:#C7000B;color:#fff;font-size:11px;padding:2px 8px;border-radius:3px;margin-right:6px">${g.key}</span><span style="font-size:12px;color:#444">${g.why}</span></div>`
+    ).join('') : '<div style="font-size:12px;color:#666">直述式标题——靠UP主自身流量带动</div>';
+    return `<div style="background:#fff;border:1px solid #f0f0f0;border-left:4px solid #C7000B;border-radius:8px;padding:14px 16px;margin-bottom:12px">
+<div style="font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:4px">TOP${i+1} · ${v.title}</div>
+<div style="font-size:12px;color:#888;margin-bottom:8px">${fmt(v.play)}播放 · ${fmt(v.like)}点赞 · 点赞率${likeRate}% · ${v.author || '未知'}</div>
+${geneHtml}
+</div>`;
+  }).join('');
+  const top5LikeRates = a.top50.slice(0, 5).map(v => v.play ? v.like / v.play * 100 : 0);
+  const maxLikeIdx = top5LikeRates.indexOf(Math.max(...top5LikeRates));
+  const geneSummary = GENE_RULES.map(g =>
+    `<tr><td style="font-weight:600;color:#C7000B">${g.key}</td><td style="font-size:12px">${g.tpl.replace(/\$\{P\}/g, brand || productName)}</td></tr>`
+  ).join('');
+  const top5Html = `
+<div style="background:#f9f9fb;border-radius:8px;padding:16px 18px;margin-bottom:16px">
+<h3 style="font-size:15px;color:#C7000B;margin-bottom:10px">五、TOP5爆款拆解（热门核心原因 + 可复制基因）</h3>
+<p style="font-size:12px;color:#666;margin-bottom:10px">逐条拆解播放量TOP5视频的标题基因——为什么火、哪些基因可以直接复制到${brand || productName}的内容里：</p>
+${top5Cards}
+<div style="background:linear-gradient(135deg,#fff5f5,#fff);border-radius:8px;padding:14px 16px;border:1px solid #ffe0e0">
+<p style="font-size:13px;color:#C7000B;font-weight:600;margin-bottom:8px">5大可复制基因模板（${brand || productName}直接套用）：</p>
+<table style="width:100%;border-collapse:collapse;font-size:13px">${geneSummary}</table>
+<p style="font-size:12px;color:#666;margin-top:8px">点赞率最高的视频是TOP${maxLikeIdx+1}（${top5LikeRates[maxLikeIdx].toFixed(1)}%）——情绪型标题不仅拉播放，互动率也是普通标题的2-3倍。</p>
+</div>
+</div>`;
+
   // 内容矩阵
   const matrixRows = ts.slice(0, 4).map(([t, d]) => {
     const pct = (d.count / a.count * 100).toFixed(0);
@@ -227,6 +264,8 @@ ${emoWords.length ? `<p style="font-size:12px;color:#666"><strong style="color:#
 <strong style="color:#C7000B">Step 4 · 持续期（长期）：</strong>跟踪 ${brand} 版本更新第一时间解读（抢首发流量），月均产出 4-6 条，维持${maxMonth ? '类似 ' + maxMonth[0] + ' 的' : ''}爆发节奏。
 </div>
 </div>
+
+${top5Html}
 </section>` : '';
 
   const today = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
